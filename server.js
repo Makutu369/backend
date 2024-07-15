@@ -1,131 +1,73 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import { Document } from "./models/document.js";
+import mongoose from "mongoose";
 
 // Helper to get __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+mongoose
+  .connect("mongodb://localhost:27017/amalitech_UI")
+  .then(() => console.log("db success"))
+  .catch((e) => console.log(e));
 const app = express();
 const PORT = 3001;
-const DATA_FILE = path.join(__dirname, 'data.json'); // Define the path to your data file
 
 app.use(cors());
 app.use(bodyParser.json());
 
 // Endpoint to get all documents
-app.get('/documents', (req, res) => {
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).send('Error reading data file');
-    }
-    res.json(JSON.parse(data));
-  });
+app.get("/documents", async (req, res) => {
+  const document = await Document.find({});
+  res.status(200).json(document);
 });
 
 // Endpoint to add a new document
-app.post('/documents', (req, res) => {
-  const newDocument = req.body;
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).send('Error reading data file');
-    }
+app.post("/documents", async (req, res) => {
+  const { name, content } = req.body;
 
-    let documents = JSON.parse(data);
-    documents.push(newDocument);
-
-    fs.writeFile(DATA_FILE, JSON.stringify(documents, null, 4), (err) => {
-      if (err) {
-        return res.status(500).send('Error writing data file');
-      }
-      res.send('Document added successfully');
-    });
+  const document = new Document({
+    name,
+    content,
   });
+
+  await document.save();
+  res.status(200).json(document);
 });
 
 // Endpoint to update a document
-app.put('/documents/:id', (req, res) => {
-  const documentId = parseInt(req.params.id, 10);
-  const updatedContent = req.body.content;
+app.post("/documents/:id", async (req, res) => {
+  const id = req.params.id;
+  const { name, content } = req.body;
+  const document = await Document.findById(id);
 
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).send('Error reading data file');
-    }
+  document.content = content;
+  document.name = name;
 
-    let documents = JSON.parse(data);
-    const documentIndex = documents.findIndex(doc => doc.id === documentId);
-    if (documentIndex === -1) {
-      return res.status(404).send('Document not found');
-    }
-
-    documents[documentIndex].content = updatedContent;
-
-    fs.writeFile(DATA_FILE, JSON.stringify(documents, null, 4), (err) => {
-      if (err) {
-        return res.status(500).send('Error writing data file');
-      }
-      res.send('Document updated successfully');
-    });
-  });
+  await document.save();
+  res.status(200).json(document);
 });
 
 // Endpoint to delete a document
-app.delete('/documents/:id', (req, res) => {
-  const documentId = parseInt(req.params.id, 10);
+app.delete("/documents/:id", async (req, res) => {
+  const { id } = req.params;
+  const document = await Document.findByIdAndDelete(id);
+  if (!document)
+    return res.status(400).json({ message: "document delete successfully" });
 
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).send('Error reading data file');
-    }
-
-    let documents = JSON.parse(data);
-    const documentIndex = documents.findIndex(doc => doc.id === documentId);
-    if (documentIndex === -1) {
-      return res.status(404).send('Document not found');
-    }
-
-    documents.splice(documentIndex, 1); // Remove the document
-
-    fs.writeFile(DATA_FILE, JSON.stringify(documents, null, 4), (err) => {
-      if (err) {
-        return res.status(500).send('Error writing data file');
-      }
-      res.send('Document deleted successfully');
-    });
-  });
+  res.status(200).json("document deleted successfully");
 });
 
 // Endpoint to update the document name
-app.put('/documents/:id/name', (req, res) => {
-  const documentId = parseInt(req.params.id, 10);
-  const newName = req.body.name;
+app.put("/documents/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  const document = await Document.findById(id);
+  if (!document) return res.status(400).json({ message: "document not found" });
+  document.name = name;
+  await document.save();
 
-  fs.readFile(DATA_FILE, 'utf8', (err, data) => {
-    if (err) {
-      return res.status(500).send('Error reading data file');
-    }
-
-    let documents = JSON.parse(data);
-    const documentIndex = documents.findIndex(doc => doc.id === documentId);
-    if (documentIndex === -1) {
-      return res.status(404).send('Document not found');
-    }
-
-    documents[documentIndex].name = newName;
-
-    fs.writeFile(DATA_FILE, JSON.stringify(documents, null, 4), (err) => {
-      if (err) {
-        return res.status(500).send('Error writing data file');
-      }
-      res.send('Document name updated successfully');
-    });
-  });
+  res.status(200).json(document);
 });
-
 
 // Start the server
 app.listen(PORT, () => {
