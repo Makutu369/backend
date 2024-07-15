@@ -3,10 +3,12 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { Document } from "./models/document.js";
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Helper to get __dirname in ES modules
 mongoose
-  .connect("mongodb://localhost:27017/amalitech_UI")
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("db success"))
   .catch((e) => console.log(e));
 const app = express();
