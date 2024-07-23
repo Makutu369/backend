@@ -50,6 +50,8 @@ app.post("/documents", (req, res) => {
 app.put("/documents/:id", (req, res) => {
   const documentId = parseInt(req.params.id, 10);
   const updatedContent = req.body.content;
+  const updateName = req.body.name;
+  console.log(updateName, updatedContent);
 
   fs.readFile(DATA_FILE, "utf8", (err, data) => {
     if (err) {
@@ -63,6 +65,7 @@ app.put("/documents/:id", (req, res) => {
     }
 
     documents[documentIndex].content = updatedContent;
+    documents[documentIndex].name = updateName; // Update the document name
 
     fs.writeFile(DATA_FILE, JSON.stringify(documents, null, 4), (err) => {
       if (err) {
@@ -104,7 +107,7 @@ app.put("/documents/:id/name", (req, res) => {
   try {
     const documentId = parseInt(req.params.id, 10);
     const newName = req.body.name;
-
+    console.log(newName);
     fs.readFile(DATA_FILE, "utf8", (err, data) => {
       if (err) {
         return res.status(500).send("Error reading data file");
